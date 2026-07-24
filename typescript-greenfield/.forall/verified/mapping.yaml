@@ -128,3 +128,51 @@ requirements:
     code:
       file: src/api/quoteHandler.ts
       symbols: [handleQuote]
+
+  - id: refundable-amount-bounds
+    capability: refunds
+    requirement: a refund never exceeds either the captured payment or requested amount
+    verified: true
+    scenarios:
+      - name: refund-capped-to-payment
+        kind: formal
+    code:
+      file: src/domain/money.ts
+      symbols: [refundableAmount]
+    contract: "RefundableAmountBounds refundableAmount"
+
+  - id: restocking-fee-bounds
+    capability: refunds
+    requirement: a restocking fee between zero and one hundred percent never exceeds the refund
+    verified: true
+    scenarios:
+      - name: bounded-restocking-fee
+        kind: formal
+    code:
+      file: src/domain/money.ts
+      symbols: [restockingFee]
+    contract: "RestockingFeeBounds restockingFee"
+
+  - id: refund-quote-composition
+    capability: refunds
+    requirement: net refund equals gross refund minus the restocking fee
+    verified: false
+    scenarios:
+      - name: net-refund-composition
+        kind: manual
+    code:
+      file: src/domain/refunds.ts
+      symbols: [quoteRefund]
+
+  - id: refund-http-handler
+    capability: api
+    requirement: POST /refund validates input and returns a refund quote
+    verified: false
+    scenarios:
+      - name: valid-refund-request
+        kind: manual
+      - name: invalid-refund-request
+        kind: manual
+    code:
+      file: src/api/refundHandler.ts
+      symbols: [handleRefund]

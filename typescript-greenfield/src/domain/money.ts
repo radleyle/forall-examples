@@ -77,3 +77,25 @@ export function shippingFee(
   }
   return flatFeeCents;
 }
+
+/** Limit a requested refund to the amount originally paid. */
+export function refundableAmount(paidCents: number, requestedCents: number): number {
+  //@ requires paidCents >= 0
+  //@ requires requestedCents >= 0
+  //@ ensures 0 <= \result && \result <= paidCents
+  //@ ensures \result <= requestedCents
+  //@ contract RefundableAmountBounds refundableAmount
+  if (requestedCents >= paidCents) {
+    return paidCents;
+  }
+  return requestedCents;
+}
+
+/** A restocking fee expressed in basis points, capped at the refund amount. */
+export function restockingFee(refundCents: number, feeBps: number): number {
+  //@ requires refundCents >= 0
+  //@ requires 0 <= feeBps && feeBps <= 10000
+  //@ ensures 0 <= \result && \result <= refundCents
+  //@ contract RestockingFeeBounds restockingFee
+  return Math.floor((refundCents * feeBps) / 10000);
+}
