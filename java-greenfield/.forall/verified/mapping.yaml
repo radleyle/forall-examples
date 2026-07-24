@@ -1,0 +1,206 @@
+version: 1
+requirements:
+  - id: usage-bounded
+    capability: usage
+    requirement: usage is bounded by the configured maximum
+    verified: true
+    scenarios: [{name: excessive-usage, kind: formal}]
+    code:
+      file: src/main/java/dev/forall/billing/domain/UsageMath.java
+      symbols: [boundedUsage]
+    contract: |
+      //@ requires usage >= 0;
+      //@ ensures 0 <= \result && \result <= MAX_USAGE;
+      //@ ensures usage <= MAX_USAGE ==> \result == usage;
+      //@ ensures usage > MAX_USAGE ==> \result == MAX_USAGE;
+
+  - id: tier-units-bounded
+    capability: usage
+    requirement: tier units stay within the reported usage
+    verified: true
+    scenarios: [{name: progressive-tier, kind: formal}]
+    code:
+      file: src/main/java/dev/forall/billing/domain/UsageMath.java
+      symbols: [tierUnits]
+    contract: |
+      //@ requires totalUsage >= 0;
+      //@ requires threshold >= 0;
+      //@ ensures 0 <= \result && \result <= totalUsage;
+      //@ ensures totalUsage <= threshold ==> \result == 0;
+      //@ ensures totalUsage > threshold ==> \result == totalUsage - threshold;
+
+  - id: tier-cap
+    capability: usage
+    requirement: tier units respect a tier cap
+    verified: true
+    scenarios: [{name: finite-tier, kind: formal}]
+    code:
+      file: src/main/java/dev/forall/billing/domain/UsageMath.java
+      symbols: [capUnits]
+    contract: |
+      //@ requires units >= 0;
+      //@ requires capacity >= 0;
+      //@ ensures 0 <= \result && \result <= units;
+      //@ ensures \result <= capacity;
+
+  - id: tier-charge-safe
+    capability: usage
+    requirement: a tier charge is non-negative and overflow-safe
+    verified: true
+    scenarios: [{name: valid-units-and-rate, kind: formal}]
+    code:
+      file: src/main/java/dev/forall/billing/domain/UsageMath.java
+      symbols: [safeTierCharge]
+    contract: |
+      //@ requires units >= 0;
+      //@ requires centsPerUnit >= 0;
+      //@ requires units == 0 || centsPerUnit <= MAX_CENTS / units;
+      //@ ensures 0 <= \result && \result <= MAX_CENTS;
+      //@ ensures \result == units * centsPerUnit;
+
+  - id: aggregation-saturates
+    capability: usage
+    requirement: invoice aggregation saturates at its configured cap
+    verified: true
+    scenarios: [{name: additions-exceed-cap, kind: formal}]
+    code:
+      file: src/main/java/dev/forall/billing/domain/InvoiceMath.java
+      symbols: [saturatingAdd]
+    contract: |
+      //@ requires left >= 0 && left <= cap;
+      //@ requires right >= 0 && right <= cap;
+      //@ requires cap >= 0 && cap <= MAX_CENTS;
+      //@ ensures 0 <= \result && \result <= cap;
+      //@ ensures left > cap - right ==> \result == cap;
+      //@ ensures left <= cap - right ==> \result == left + right;
+
+  - id: percentage-discount-bounds
+    capability: adjustments
+    requirement: percentage discounts stay within subtotal
+    verified: true
+    scenarios: [{name: valid-basis-points, kind: formal}]
+    code:
+      file: src/main/java/dev/forall/billing/domain/AdjustmentMath.java
+      symbols: [percentageDiscount]
+    contract: |
+      //@ requires subtotal >= 0 && subtotal <= MAX_CENTS;
+      //@ requires basisPoints >= 0 && basisPoints <= BASIS_POINTS;
+      //@ requires subtotal == 0 || basisPoints <= Long.MAX_VALUE / subtotal;
+      //@ ensures 0 <= \result && \result <= subtotal;
+      //@ ensures \result == subtotal * basisPoints / BASIS_POINTS;
+
+  - id: discount-cap
+    capability: adjustments
+    requirement: discount caps limit savings
+    verified: true
+    scenarios: [{name: proposed-discount-exceeds-cap, kind: formal}]
+    code:
+      file: src/main/java/dev/forall/billing/domain/AdjustmentMath.java
+      symbols: [capDiscount]
+    contract: |
+      //@ requires proposed >= 0;
+      //@ requires subtotal >= 0;
+      //@ requires discountCap >= 0;
+      //@ ensures 0 <= \result && \result <= proposed;
+      //@ ensures \result <= subtotal && \result <= discountCap;
+
+  - id: proration-bounds
+    capability: adjustments
+    requirement: proration stays within the full amount
+    verified: true
+    scenarios: [{name: partial-active-period, kind: formal}]
+    code:
+      file: src/main/java/dev/forall/billing/domain/AdjustmentMath.java
+      symbols: [prorate]
+    contract: |
+      //@ requires fullAmount >= 0 && fullAmount <= MAX_CENTS;
+      //@ requires totalDays > 0;
+      //@ requires activeDays >= 0 && activeDays <= totalDays;
+      //@ requires (\bigint) fullAmount * activeDays <= Long.MAX_VALUE;
+      //@ ensures 0 <= \result && \result <= fullAmount;
+      //@ ensures \result == ((\bigint) fullAmount * activeDays) / totalDays;
+
+  - id: credit-bounds
+    capability: adjustments
+    requirement: credits cannot exceed the amount due
+    verified: true
+    scenarios: [{name: credit-balance-exceeds-charge, kind: formal}]
+    code:
+      file: src/main/java/dev/forall/billing/domain/AdjustmentMath.java
+      symbols: [applyCredit]
+    contract: |
+      //@ requires amountDue >= 0;
+      //@ requires availableCredit >= 0;
+      //@ ensures 0 <= \result && \result <= amountDue;
+      //@ ensures \result <= availableCredit;
+
+  - id: taxable-base
+    capability: adjustments
+    requirement: taxable base excludes valid discounts and credits
+    verified: true
+    scenarios: [{name: adjusted-taxable-charge, kind: formal}]
+    code:
+      file: src/main/java/dev/forall/billing/domain/TaxMath.java
+      symbols: [taxableBase]
+    contract: |
+      //@ requires subtotal >= 0;
+      //@ requires discount >= 0 && discount <= subtotal;
+      //@ requires credit >= 0 && credit <= subtotal - discount;
+      //@ ensures 0 <= \result && \result <= subtotal;
+      //@ ensures \result == subtotal - discount - credit;
+
+  - id: tax-bounds
+    capability: adjustments
+    requirement: tax is non-negative, bounded, and overflow-safe
+    verified: true
+    scenarios: [{name: valid-tax-basis-points, kind: formal}]
+    code:
+      file: src/main/java/dev/forall/billing/domain/TaxMath.java
+      symbols: [taxAmount]
+    contract: |
+      //@ requires taxableCents >= 0 && taxableCents <= MAX_CENTS;
+      //@ requires basisPoints >= 0 && basisPoints <= BASIS_POINTS;
+      //@ requires taxableCents == 0 || basisPoints <= Long.MAX_VALUE / taxableCents;
+      //@ ensures 0 <= \result && \result <= taxableCents;
+      //@ ensures \result == taxableCents * basisPoints / BASIS_POINTS;
+
+  - id: invoice-total-cap
+    capability: adjustments
+    requirement: invoice totals respect the account cap
+    verified: true
+    scenarios: [{name: total-exceeds-cap, kind: formal}]
+    code:
+      file: src/main/java/dev/forall/billing/domain/InvoiceMath.java
+      symbols: [capTotal]
+    contract: |
+      //@ requires amount >= 0;
+      //@ requires accountCap >= 0;
+      //@ ensures 0 <= \result && \result <= amount;
+      //@ ensures \result <= accountCap;
+
+  - id: invoice-assembly
+    capability: invoice
+    requirement: billing assembles a deterministic invoice from subscription policy and usage
+    verified: false
+    scenarios: [{name: active-subscription, kind: manual}]
+    code:
+      file: src/main/java/dev/forall/billing/application/BillingService.java
+      symbols: [bill]
+
+  - id: credit-persistence
+    capability: invoice
+    requirement: applied credits are persisted
+    verified: false
+    scenarios: [{name: credit-consumed, kind: manual}]
+    code:
+      file: src/main/java/dev/forall/billing/repository/SubscriptionRepository.java
+      symbols: [save]
+
+  - id: delivery-invoice
+    capability: delivery
+    requirement: the delivery endpoint validates requests and returns invoice values
+    verified: false
+    scenarios: [{name: valid-billing-request, kind: manual}]
+    code:
+      file: src/main/java/dev/forall/billing/delivery/BillingEndpoint.java
+      symbols: [createInvoice]

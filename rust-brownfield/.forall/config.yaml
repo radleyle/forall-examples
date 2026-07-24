@@ -1,0 +1,11 @@
+schema: forall
+context: |
+  Brownfield Rust inventory reservation service adopting formal verification
+  incrementally. Existing application, repository, event, and API orchestration
+  remains spec-tracked. Proofs target the narrow pure domain transition core.
+rules:
+  verification:
+    - Keep verified requirements confined to src/domain/verified_core.rs
+    - Keep repository concurrency and event ordering spec-tracked until modeled
+    - Never downgrade verified requirements to bypass proof obligations
+    - Run cargo test and cargo clippy for the standard-Rust production path

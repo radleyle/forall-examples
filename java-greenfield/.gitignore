@@ -1,0 +1,8 @@
+target/
+*.class
+.idea/
+.project
+.classpath
+.settings/
+.forall/verified/reports/
+.forall/verified/claimcheck/

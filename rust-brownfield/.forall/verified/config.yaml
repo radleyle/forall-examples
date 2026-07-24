@@ -1,0 +1,6 @@
+backend: verus
+strict: false
+adapters:
+  rust:
+    proof: verus
+    extensions: [rs]

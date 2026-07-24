@@ -1,0 +1,2 @@
+# Legacy project marker consumed by forall-cli 0.0.0.
+project_root_markers = [".forall/verified/mapping.yaml"]

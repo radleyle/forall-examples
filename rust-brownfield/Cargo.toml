@@ -1,0 +1,17 @@
+[package]
+name = "inventory-reservation"
+version = "0.1.0"
+edition = "2021"
+description = "Brownfield inventory reservation service with an incrementally verified core"
+license = "MIT"
+
+[package.metadata.verus]
+verify = true
+
+[features]
+default = []
+
+[dependencies]
+
+[lints.rust]
+unexpected_cfgs = { level = "allow", check-cfg = ["cfg(verus)"] }

@@ -1,0 +1,11 @@
+schema: forall
+context: |
+  Java 17 subscription billing engine using integer cents and basis points.
+  Specs define tiered usage, adjustments, tax, invoice assembly, persistence, and delivery.
+  Pure scalar capability math helpers are verified; collection aggregation and boundaries
+  are spec-tracked.
+rules:
+  verification:
+    - Keep verified scalar contracts explicit about overflow preconditions
+    - Keep collection aggregation, repositories, and delivery verified false
+    - Run Maven compilation and the assertion harness before archive

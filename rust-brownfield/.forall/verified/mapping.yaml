@@ -1,0 +1,264 @@
+version: 1
+requirements:
+  - id: reserve-admissibility
+    capability: reservation
+    requirement: A reserve request SHALL be admissible exactly when its quantity is positive and no greater than available stock.
+    verified: true
+    code:
+      file: src/domain/verified_core.rs
+      symbols: [can_reserve]
+    contract: |
+      ensures
+        result == (quantity > 0 && quantity <= available)
+    scenarios:
+      - name: valid-capacity
+        kind: formal
+
+  - id: reserve-transition-invariants
+    capability: reservation
+    requirement: A valid reserve transition SHALL move quantity from available to reserved while preserving total stock and capacity bounds.
+    verified: true
+    code:
+      file: src/domain/verified_core.rs
+      symbols: [reserve_transition]
+    contract: |
+      requires
+        quantity > 0,
+        quantity <= available,
+        reserved <= 18446744073709551615u64 - quantity,
+        available + reserved <= 18446744073709551615u64
+      ensures
+        result.0 == available - quantity,
+        result.1 == reserved + quantity,
+        result.0 + result.1 == available + reserved,
+        result.0 <= available
+    scenarios:
+      - name: reserve-transition-invariants
+        kind: formal
+
+  - id: rejected-reserve-unchanged
+    capability: reservation
+    requirement: A rejected reserve transition SHALL leave both available and reserved stock unchanged.
+    verified: true
+    code:
+      file: src/domain/verified_core.rs
+      symbols: [rejected_transition]
+    contract: |
+      requires
+        quantity == 0 || quantity > available
+      ensures
+        result.0 == available,
+        result.1 == reserved
+    scenarios:
+      - name: rejected-transition
+        kind: formal
+
+  - id: total-stock-arithmetic
+    capability: reservation
+    requirement: Total stock SHALL equal the overflow-safe sum of available and reserved stock.
+    verified: true
+    code:
+      file: src/domain/verified_core.rs
+      symbols: [total_stock]
+    contract: |
+      requires
+        available <= 18446744073709551615u64 - reserved
+      ensures
+        result == available + reserved,
+        result >= available,
+        result >= reserved
+    scenarios:
+      - name: total-stock
+        kind: formal
+
+  - id: stock-capacity-validity
+    capability: reservation
+    requirement: Stock state validity SHALL hold exactly when overflow-safe total stock does not exceed capacity.
+    verified: true
+    code:
+      file: src/domain/verified_core.rs
+      symbols: [stock_state_valid]
+    contract: |
+      requires
+        available <= 18446744073709551615u64 - reserved
+      ensures
+        result == (available + reserved <= capacity)
+    scenarios:
+      - name: capacity-validity
+        kind: formal
+
+  - id: release-admissibility
+    capability: release
+    requirement: Release SHALL be admissible exactly when quantity is positive, reserved, and safe to add to available stock.
+    verified: true
+    code:
+      file: src/domain/verified_core.rs
+      symbols: [can_release]
+    contract: |
+      ensures
+        result == (quantity > 0 && quantity <= reserved && available <= 18446744073709551615u64 - quantity)
+    scenarios:
+      - name: releasable-quantity
+        kind: formal
+
+  - id: release-transition-invariants
+    capability: release
+    requirement: A valid release transition SHALL restore available stock, reduce reserved stock, and conserve total stock.
+    verified: true
+    code:
+      file: src/domain/verified_core.rs
+      symbols: [release_transition]
+    contract: |
+      requires
+        quantity > 0,
+        quantity <= reserved,
+        available <= 18446744073709551615u64 - quantity,
+        available + reserved <= 18446744073709551615u64
+      ensures
+        result.0 == available + quantity,
+        result.1 == reserved - quantity,
+        result.0 + result.1 == available + reserved,
+        result.0 >= available,
+        result.1 <= reserved
+    scenarios:
+      - name: release-transition-invariants
+        kind: formal
+
+  - id: expiry-transition-invariants
+    capability: expiry
+    requirement: A valid expiry transition SHALL restore available stock, reduce reserved stock, and conserve total stock.
+    verified: true
+    code:
+      file: src/domain/verified_core.rs
+      symbols: [expiry_transition]
+    contract: |
+      requires
+        quantity > 0,
+        quantity <= reserved,
+        available <= 18446744073709551615u64 - quantity,
+        available + reserved <= 18446744073709551615u64
+      ensures
+        result.0 == available + quantity,
+        result.1 == reserved - quantity,
+        result.0 + result.1 == available + reserved
+    scenarios:
+      - name: expiry-transition-invariants
+        kind: formal
+
+  - id: expiry-deadline-reached
+    capability: expiry
+    requirement: A reservation SHALL be expired exactly when the current time reaches its deadline.
+    verified: true
+    code:
+      file: src/domain/verified_core.rs
+      symbols: [is_expired]
+    contract: |
+      ensures
+        result == (now >= expires_at)
+    scenarios:
+      - name: deadline-reached
+        kind: formal
+
+  - id: expiry-monotonic
+    capability: expiry
+    requirement: An expired deadline SHALL remain expired as time advances.
+    verified: true
+    code:
+      file: src/domain/verified_core.rs
+      symbols: [expiry_monotonic]
+    contract: |
+      requires
+        now <= later
+      ensures
+        result,
+        now >= expires_at ==> later >= expires_at
+    scenarios:
+      - name: remains-due
+        kind: formal
+
+  - id: expiry-deadline-arithmetic
+    capability: expiry
+    requirement: A positive fitting TTL SHALL produce a later expiry deadline without arithmetic overflow.
+    verified: true
+    code:
+      file: src/domain/verified_core.rs
+      symbols: [checked_expiry]
+    contract: |
+      requires
+        ttl > 0,
+        now <= 18446744073709551615u64 - ttl
+      ensures
+        result == now + ttl,
+        result > now,
+        result >= ttl
+    scenarios:
+      - name: bounded-deadline
+        kind: formal
+
+  - id: repository-serialized-atomicity
+    capability: reservation
+    requirement: Repository transactions SHALL atomically serialize writes to prevent partial state and overselling.
+    verified: false
+    code:
+      file: src/repository/inventory_repository.rs
+      symbols: [run_transaction]
+    scenarios:
+      - name: serialized-atomic-write
+        kind: manual
+
+  - id: release-active-only
+    capability: release
+    requirement: Only an active reservation SHALL transition to released.
+    verified: false
+    code:
+      file: src/application/service.rs
+      symbols: [release]
+    scenarios:
+      - name: no-double-release
+        kind: test
+
+  - id: expiry-active-due-only
+    capability: expiry
+    requirement: Expiry processing SHALL change only active due reservations.
+    verified: false
+    code:
+      file: src/application/service.rs
+      symbols: [expire_due]
+    scenarios:
+      - name: skip-ineligible
+        kind: test
+
+  - id: reserve-idempotency
+    capability: idempotency
+    requirement: Reserve idempotency SHALL replay matching requests and reject conflicting key reuse without duplicate stock changes or events.
+    verified: false
+    code:
+      file: src/application/service.rs
+      symbols: [reserve]
+    scenarios:
+      - name: exact-replay
+        kind: test
+      - name: conflicting-replay
+        kind: test
+
+  - id: events-after-commit
+    capability: integration
+    requirement: Domain events SHALL be published only after repository success.
+    verified: false
+    code:
+      file: src/events/event.rs
+      symbols: [publish_after_commit]
+    scenarios:
+      - name: post-commit-event
+        kind: manual
+
+  - id: api-stable-error-status
+    capability: integration
+    requirement: API errors SHALL map to stable HTTP-style status classes.
+    verified: false
+    code:
+      file: src/api/handlers.rs
+      symbols: [reserve_handler]
+    scenarios:
+      - name: error-contract
+        kind: manual
