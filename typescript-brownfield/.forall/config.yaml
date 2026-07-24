@@ -1,0 +1,11 @@
+schema: forall
+context: |
+  Brownfield TypeScript feature-flag evaluation service.
+  Pure numeric helpers are formal-verified, broad input invariants are property-tested,
+  and repository/application/HTTP orchestration remains spec-tracked.
+rules:
+  verification:
+    - Keep verified true requirements machine-checked before claiming success
+    - Use property_tested true with top-level property linkage for fast-check scenarios
+    - Use FORALL_PBT_SEED and FORALL_PBT_EXAMPLES for reproducible property runs
+    - Keep repository, application, and HTTP orchestration spec-tracked

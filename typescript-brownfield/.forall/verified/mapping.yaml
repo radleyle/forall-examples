@@ -1,0 +1,137 @@
+version: 1
+requirements:
+  - id: stable-hash-unsigned
+    capability: rollout
+    requirement: The service SHALL produce unsigned stable hashes
+    verified: true
+    scenarios: [{ name: Any subject key, kind: formal }]
+    code: { file: src/domain/verifiedCore.ts, symbols: [asUnsignedStableHash] }
+    contract: "StableHashUnsigned asUnsignedStableHash"
+
+  - id: rollout-bucket-bounds
+    capability: rollout
+    requirement: The service SHALL keep rollout buckets within the ten-thousand bucket range
+    verified: true
+    scenarios: [{ name: Any unsigned hash, kind: formal }]
+    code: { file: src/domain/verifiedCore.ts, symbols: [hashToBucket] }
+    contract: "HashBucketBounds hashToBucket"
+
+  - id: percentage-bounds
+    capability: rollout
+    requirement: The service SHALL clamp percentages to the supported range
+    verified: true
+    scenarios: [{ name: Any numeric percentage, kind: formal }]
+    code: { file: src/domain/verifiedCore.ts, symbols: [clampFinitePercentage] }
+    contract: "PercentageBounds clampFinitePercentage"
+
+  - id: threshold-bounds
+    capability: rollout
+    requirement: The service SHALL keep rollout thresholds within the ten-thousand bucket range
+    verified: true
+    scenarios: [{ name: Valid percentage, kind: formal }]
+    code: { file: src/domain/verifiedCore.ts, symbols: [percentageToThreshold] }
+    contract: "RolloutThresholdBounds percentageToThreshold"
+
+  - id: rollout-inclusion
+    capability: rollout
+    requirement: The service SHALL make rollout inclusion exactly follow the threshold comparison
+    verified: true
+    scenarios: [{ name: Valid bucket and threshold, kind: formal }]
+    code: { file: src/domain/verifiedCore.ts, symbols: [isBucketIncluded] }
+    contract: "RolloutInclusion isBucketIncluded"
+
+  - id: config-version-positive
+    capability: configuration
+    requirement: The service SHALL normalize configuration versions to positive integers
+    verified: true
+    scenarios: [{ name: Arbitrary numeric version, kind: formal }]
+    code: { file: src/domain/verifiedCore.ts, symbols: [normalizeFiniteVersion] }
+    contract: "ConfigVersionPositive normalizeFiniteVersion"
+
+  - id: rule-priority-nonnegative
+    capability: configuration
+    requirement: The service SHALL normalize rule priorities to non-negative integers
+    verified: true
+    scenarios: [{ name: Arbitrary numeric priority, kind: formal }]
+    code: { file: src/domain/verifiedCore.ts, symbols: [normalizeFiniteRulePriority] }
+    contract: "RulePriorityNonNegative normalizeFiniteRulePriority"
+
+  - id: fallback-nonnegative
+    capability: configuration
+    requirement: The service SHALL keep numeric fallbacks non-negative
+    verified: true
+    scenarios: [{ name: Invalid or valid value, kind: formal }]
+    code: { file: src/domain/verifiedCore.ts, symbols: [selectNonNegativeFallback] }
+    contract: "NonNegativeFallback selectNonNegativeFallback"
+
+  - id: arbitrary-config-safe
+    capability: configuration
+    requirement: The service SHALL not crash on arbitrary configuration input
+    property_tested: true
+    property:
+      file: .forall/scenarios/arbitrary-configuration.property.ts
+      symbol: runArbitraryConfigurationProperty
+    scenarios: [{ name: Generated unknown input, kind: test }]
+    code: { file: src/config/normalize.ts, symbols: [normalizeConfiguration] }
+
+  - id: normalization-idempotent
+    capability: configuration
+    requirement: The service SHALL make flag normalization idempotent
+    property_tested: true
+    property:
+      file: .forall/scenarios/normalization-idempotent.property.ts
+      symbol: runNormalizationIdempotentProperty
+    scenarios: [{ name: Generated unknown input, kind: test }]
+    code: { file: src/config/normalize.ts, symbols: [normalizeFlag] }
+
+  - id: evaluation-deterministic
+    capability: rollout
+    requirement: The service SHALL make repeated evaluation deterministic
+    property_tested: true
+    property:
+      file: .forall/scenarios/evaluation-deterministic.property.ts
+      symbol: runEvaluationDeterministicProperty
+    scenarios: [{ name: Generated flags and contexts, kind: test }]
+    code: { file: src/domain/evaluate.ts, symbols: [evaluateFlag] }
+
+  - id: targeting-precedence
+    capability: rollout
+    requirement: The service SHALL select the first matching targeting rule
+    verified: false
+    scenarios: [{ name: Multiple targeting rules, kind: manual }]
+    code: { file: src/domain/targeting.ts, symbols: [firstMatchingRule] }
+
+  - id: invalid-config-rejected
+    capability: configuration
+    requirement: The service SHALL reject invalid and duplicate flag definitions
+    verified: false
+    scenarios: [{ name: Malformed configuration, kind: manual }]
+    code: { file: src/config/validate.ts, symbols: [validateConfiguration] }
+
+  - id: missing-flag-fallback
+    capability: evaluation-service
+    requirement: The service SHALL construct missing-flag evaluations with the caller fallback
+    verified: false
+    scenarios: [{ name: Unknown flag key, kind: manual }]
+    code: { file: src/domain/fallbacks.ts, symbols: [missingFlagEvaluation] }
+
+  - id: repository-failure-fallback
+    capability: evaluation-service
+    requirement: The service SHALL construct repository-error evaluations with the caller fallback
+    verified: false
+    scenarios: [{ name: Repository read failure, kind: manual }]
+    code: { file: src/domain/fallbacks.ts, symbols: [repositoryErrorEvaluation] }
+
+  - id: invalid-context-fallback
+    capability: evaluation-service
+    requirement: The service SHALL construct invalid-context evaluations with the caller fallback
+    verified: false
+    scenarios: [{ name: Blank subject key, kind: manual }]
+    code: { file: src/domain/fallbacks.ts, symbols: [invalidContextEvaluation] }
+
+  - id: http-evaluation-handler
+    capability: evaluation-service
+    requirement: The HTTP handler SHALL validate requests and delegate evaluation
+    verified: false
+    scenarios: [{ name: POST evaluation request, kind: manual }]
+    code: { file: src/api/evaluateHandler.ts, symbols: [createEvaluateHandler] }

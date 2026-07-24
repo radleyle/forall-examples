@@ -1,0 +1,2 @@
+# Root marker used by the installed Forall CLI.
+project_root_markers = [".forall/verified/mapping.yaml"]

@@ -1,0 +1,23 @@
+{
+  "name": "forall-example-typescript-brownfield",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-shaped brownfield feature flag evaluation service with incremental Forall adoption",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "check": "tsc --noEmit",
+    "test": "tsx --test tests/**/*.test.ts",
+    "test:properties": "tsx tests/runProperties.ts",
+    "verify": "npm run check && npm test && npm run test:properties"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "fast-check": "^4.2.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0"
+  }
+}
