@@ -1,13 +1,14 @@
 //! Narrow pure transition core.
 //!
-//! Standard `rustc` compiles the `cfg(not(verus))` implementations. Verus selects
-//! the contract-bearing definitions inside `verus!`; those clauses are Verus
-//! syntax and are intentionally not claimed to be accepted by standard Rust.
+//! Standard `rustc` compiles the `cfg(not(verus_only))` implementations. Verus
+//! selects the contract-bearing definitions inside `verus!` when `verus_only` is
+//! set by `cargo verus`; those clauses are Verus syntax and are intentionally not
+//! claimed to be accepted by standard Rust.
 
-#[cfg(verus)]
+#[cfg(verus_only)]
 use vstd::prelude::*;
 
-#[cfg(not(verus))]
+#[cfg(not(verus_only))]
 macro_rules! verus {
     ($($tokens:tt)*) => {};
 }
@@ -158,57 +159,57 @@ verus! {
     }
 }
 
-#[cfg(not(verus))]
+#[cfg(not(verus_only))]
 pub fn can_reserve(available: u64, quantity: u64) -> bool {
     quantity > 0 && quantity <= available
 }
 
-#[cfg(not(verus))]
+#[cfg(not(verus_only))]
 pub fn reserve_transition(available: u64, reserved: u64, quantity: u64) -> (u64, u64) {
     (available - quantity, reserved + quantity)
 }
 
-#[cfg(not(verus))]
+#[cfg(not(verus_only))]
 pub fn rejected_transition(available: u64, reserved: u64, _quantity: u64) -> (u64, u64) {
     (available, reserved)
 }
 
-#[cfg(not(verus))]
+#[cfg(not(verus_only))]
 pub fn total_stock(available: u64, reserved: u64) -> u64 {
     available + reserved
 }
 
-#[cfg(not(verus))]
+#[cfg(not(verus_only))]
 pub fn stock_state_valid(available: u64, reserved: u64, capacity: u64) -> bool {
     available + reserved <= capacity
 }
 
-#[cfg(not(verus))]
+#[cfg(not(verus_only))]
 pub fn can_release(available: u64, reserved: u64, quantity: u64) -> bool {
     quantity > 0 && quantity <= reserved && available.checked_add(quantity).is_some()
 }
 
-#[cfg(not(verus))]
+#[cfg(not(verus_only))]
 pub fn release_transition(available: u64, reserved: u64, quantity: u64) -> (u64, u64) {
     (available + quantity, reserved - quantity)
 }
 
-#[cfg(not(verus))]
+#[cfg(not(verus_only))]
 pub fn expiry_transition(available: u64, reserved: u64, quantity: u64) -> (u64, u64) {
     (available + quantity, reserved - quantity)
 }
 
-#[cfg(not(verus))]
+#[cfg(not(verus_only))]
 pub fn is_expired(now: u64, expires_at: u64) -> bool {
     now >= expires_at
 }
 
-#[cfg(not(verus))]
+#[cfg(not(verus_only))]
 pub fn expiry_monotonic(now: u64, later: u64, expires_at: u64) -> bool {
     now < expires_at || later >= expires_at
 }
 
-#[cfg(not(verus))]
+#[cfg(not(verus_only))]
 pub fn checked_expiry(now: u64, ttl: u64) -> u64 {
     now + ttl
 }

@@ -24,14 +24,14 @@ by the installed `forall-cli 0.0.0`.
 Verus contract syntax (`requires`/`ensures`) is not standard Rust syntax. The
 verified core therefore contains two configuration-selected definitions:
 
-- standard `rustc` compiles the `cfg(not(verus))` pure implementations;
-- Verus selects equivalent definitions inside `verus!` with inline contracts.
+- standard `rustc` compiles the `cfg(not(verus_only))` pure implementations;
+- `cargo verus` turns on `verus_only` and verifies the `verus!` definitions with
+  inline contracts.
 
 `cargo test` validates the production Rust branch, but does **not** prove those
-contracts. A successful hosted `forall_verify`/Verus run is required before
-calling the mapped requirements machine-checked. `Cargo.toml` declares
-`[package.metadata.verus] verify = true`; the hosted Verus environment supplies
-`vstd` when `cfg(verus)` is selected.
+contracts. A successful `forall check` / `cargo verus verify` run is required
+before calling the mapped requirements machine-checked. `Cargo.toml` declares
+`[package.metadata.verus] verify = true` and pins a matching `vstd` dependency.
 
 ## Layout
 
@@ -42,7 +42,7 @@ calling the mapped requirements machine-checked. `Cargo.toml` declares
 - `src/api/` — transport-neutral HTTP-style handlers
 - `tests/` — end-to-end application tests
 - `.forall/specs/` — capability requirements and exact scenarios
-- `.forall/verified/` — Verus adapter configuration and authoritative mapping
+- `.forall/verify/` — Verus adapter configuration and authoritative mapping
 
 ## Checks
 

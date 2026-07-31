@@ -12,6 +12,7 @@ verify = true
 default = []
 
 [dependencies]
+vstd = { git = "https://github.com/verus-lang/verus.git", rev = "31579f0" }
 
 [lints.rust]
-unexpected_cfgs = { level = "allow", check-cfg = ["cfg(verus)"] }
+unexpected_cfgs = { level = "allow", check-cfg = ["cfg(verus)", "cfg(verus_only)"] }
